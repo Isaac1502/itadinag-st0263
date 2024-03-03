@@ -1,8 +1,9 @@
 from flask import Flask, request
 
-app = Flask(__name__)
+from db import peers
+from utils import ping
 
-peers = {}
+app = Flask(__name__)
 
 
 @app.post("/login")
@@ -55,3 +56,8 @@ def get_element():
         return {"message": f"{element} was not found."}
 
     return matched_peers
+
+
+if __name__ == "__main__":
+    ping()
+    app.run(debug=True)

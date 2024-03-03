@@ -25,6 +25,11 @@ class NexusTransferStub(object):
                 request_serializer=nexus__transfer__pb2.Peer.SerializeToString,
                 response_deserializer=nexus__transfer__pb2.Response.FromString,
                 )
+        self.Ping = channel.unary_unary(
+                '/nexustransfer.NexusTransfer/Ping',
+                request_serializer=nexus__transfer__pb2.Call.SerializeToString,
+                response_deserializer=nexus__transfer__pb2.Response.FromString,
+                )
 
 
 class NexusTransferServicer(object):
@@ -45,6 +50,13 @@ class NexusTransferServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def Ping(self, request, context):
+        """Reply to ping
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_NexusTransferServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -56,6 +68,11 @@ def add_NexusTransferServicer_to_server(servicer, server):
             'Logout': grpc.unary_unary_rpc_method_handler(
                     servicer.Logout,
                     request_deserializer=nexus__transfer__pb2.Peer.FromString,
+                    response_serializer=nexus__transfer__pb2.Response.SerializeToString,
+            ),
+            'Ping': grpc.unary_unary_rpc_method_handler(
+                    servicer.Ping,
+                    request_deserializer=nexus__transfer__pb2.Call.FromString,
                     response_serializer=nexus__transfer__pb2.Response.SerializeToString,
             ),
     }
@@ -99,6 +116,23 @@ class NexusTransfer(object):
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/nexustransfer.NexusTransfer/Logout',
             nexus__transfer__pb2.Peer.SerializeToString,
+            nexus__transfer__pb2.Response.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def Ping(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/nexustransfer.NexusTransfer/Ping',
+            nexus__transfer__pb2.Call.SerializeToString,
             nexus__transfer__pb2.Response.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

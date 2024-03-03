@@ -66,6 +66,10 @@ class NexusPServicer(nexus_transfer_pb2_grpc.NexusTransferServicer):
         response = format_response(query, 200)
         return response
 
+    def Ping(self, request, context):
+        print(f"ping from server.")
+        return nexus_transfer_pb2.Response(message="Up and running.", status=200)
+
 
 def serve():
     print("Server listenning on port: 5005")

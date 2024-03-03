@@ -14,7 +14,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x14nexus_transfer.proto\x12\rnexustransfer\"5\n\x04Peer\x12\x0b\n\x03url\x18\x01 \x01(\t\x12\x12\n\nip_address\x18\x02 \x01(\t\x12\x0c\n\x04port\x18\x03 \x01(\x05\"T\n\x0b\x43redentials\x12!\n\x04peer\x18\x01 \x01(\x0b\x32\x13.nexustransfer.Peer\x12\x10\n\x08username\x18\x02 \x01(\t\x12\x10\n\x08password\x18\x03 \x01(\t\"+\n\x08Response\x12\x0f\n\x07message\x18\x01 \x01(\t\x12\x0e\n\x06status\x18\x02 \x01(\x05\x32\x89\x01\n\rNexusTransfer\x12>\n\x05Login\x12\x1a.nexustransfer.Credentials\x1a\x17.nexustransfer.Response\"\x00\x12\x38\n\x06Logout\x12\x13.nexustransfer.Peer\x1a\x17.nexustransfer.Response\"\x00\x42\x06\xa2\x02\x03NXTb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x14nexus_transfer.proto\x12\rnexustransfer\"5\n\x04Peer\x12\x0b\n\x03url\x18\x01 \x01(\t\x12\x12\n\nip_address\x18\x02 \x01(\t\x12\x0c\n\x04port\x18\x03 \x01(\x05\"T\n\x0b\x43redentials\x12!\n\x04peer\x18\x01 \x01(\x0b\x32\x13.nexustransfer.Peer\x12\x10\n\x08username\x18\x02 \x01(\t\x12\x10\n\x08password\x18\x03 \x01(\t\"+\n\x08Response\x12\x0f\n\x07message\x18\x01 \x01(\t\x12\x0e\n\x06status\x18\x02 \x01(\x05\"\x14\n\x04\x43\x61ll\x12\x0c\n\x04\x66lag\x18\x01 \x01(\x08\x32\xc1\x01\n\rNexusTransfer\x12>\n\x05Login\x12\x1a.nexustransfer.Credentials\x1a\x17.nexustransfer.Response\"\x00\x12\x38\n\x06Logout\x12\x13.nexustransfer.Peer\x1a\x17.nexustransfer.Response\"\x00\x12\x36\n\x04Ping\x12\x13.nexustransfer.Call\x1a\x17.nexustransfer.Response\"\x00\x42\x06\xa2\x02\x03NXTb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -28,6 +28,8 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _globals['_CREDENTIALS']._serialized_end=178
   _globals['_RESPONSE']._serialized_start=180
   _globals['_RESPONSE']._serialized_end=223
-  _globals['_NEXUSTRANSFER']._serialized_start=226
-  _globals['_NEXUSTRANSFER']._serialized_end=363
+  _globals['_CALL']._serialized_start=225
+  _globals['_CALL']._serialized_end=245
+  _globals['_NEXUSTRANSFER']._serialized_start=248
+  _globals['_NEXUSTRANSFER']._serialized_end=441
 # @@protoc_insertion_point(module_scope)

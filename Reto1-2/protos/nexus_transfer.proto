@@ -16,6 +16,12 @@ service NexusTransfer {
     
     // logout peer
     rpc Logout(Peer) returns (Response) {}
+
+    // reply to ping
+    rpc Ping(Call) returns (Response) {}
+
+    // send peer's files directory
+    rpc SendDirectory(stream Files) return (Response) {}
 }
 
 // Messages definition
@@ -34,4 +40,8 @@ message Credentials {
 message Response {
     string message = 1;
     int32 status = 2;
+}
+
+message Call {
+    bool flag = 1;
 }

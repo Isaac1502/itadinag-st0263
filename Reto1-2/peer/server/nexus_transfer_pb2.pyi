@@ -31,3 +31,9 @@ class Response(_message.Message):
     message: str
     status: int
     def __init__(self, message: _Optional[str] = ..., status: _Optional[int] = ...) -> None: ...
+
+class Call(_message.Message):
+    __slots__ = ("flag",)
+    FLAG_FIELD_NUMBER: _ClassVar[int]
+    flag: bool
+    def __init__(self, flag: bool = ...) -> None: ...
