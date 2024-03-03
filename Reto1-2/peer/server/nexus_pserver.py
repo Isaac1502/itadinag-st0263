@@ -12,13 +12,13 @@ SERVER_IP = "127.0.0.1"
 SERVER_PORT = 5000
 
 
-def format_response(response):
-    if response.status_code == 200:
+def format_response(response, valid_status):
+    if response.status_code == valid_status:
         return nexus_transfer_pb2.Response(
             message=response.text, status=response.status_code
         )
     return nexus_transfer_pb2.Response(
-        message="There was an error when loging in.", status=response.status_code
+        message="There was an error doing the operation.", status=response.status_code
     )
 
 
@@ -38,18 +38,37 @@ class NexusPServicer(nexus_transfer_pb2_grpc.NexusTransferServicer):
             "port": request.peer.port,
         }
 
-        request = req.post(
+        query = req.post(
             f"http://{SERVER_IP}:{SERVER_PORT}/login",
             json=payload,
             verify=False,
             headers={"Connection": "close"},
         )
 
-        response = format_response(request)
+        response = format_response(query, 200)
+        return response
+
+    def Logout(self, request, context):
+        print(f"peer {request.url} requested to log out the server.")
+        payload = {
+            "url": request.url,
+            "ip_address": request.ip_address,
+            "port": request.port,
+        }
+
+        query = req.post(
+            f"http://{SERVER_IP}:{SERVER_PORT}/logout",
+            json=payload,
+            verify=False,
+            headers={"Connection": "close"},
+        )
+
+        response = format_response(query, 200)
         return response
 
 
 def serve():
+    print("Server listenning on port: 5005")
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     nexus_transfer_pb2_grpc.add_NexusTransferServicer_to_server(
         NexusPServicer(), server

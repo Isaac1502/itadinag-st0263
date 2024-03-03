@@ -13,6 +13,9 @@ service NexusTransfer {
 
     // login peer
     rpc Login(Credentials) returns (Response) {}
+    
+    // logout peer
+    rpc Logout(Peer) returns (Response) {}
 }
 
 // Messages definition
