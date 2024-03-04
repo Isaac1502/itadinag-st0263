@@ -1,4 +1,5 @@
 __pycache__/
-.venv
 .dsenv
 .vscode
+.env
+reto12.egg-info/
