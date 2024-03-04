@@ -53,6 +53,12 @@ class File(_message.Message):
     size_MB: float
     def __init__(self, title: _Optional[str] = ..., artist: _Optional[str] = ..., album: _Optional[str] = ..., duration: _Optional[str] = ..., size_MB: _Optional[float] = ...) -> None: ...
 
+class FileRequest(_message.Message):
+    __slots__ = ("title",)
+    TITLE_FIELD_NUMBER: _ClassVar[int]
+    title: str
+    def __init__(self, title: _Optional[str] = ...) -> None: ...
+
 class Dir(_message.Message):
     __slots__ = ("peer", "files")
     PEER_FIELD_NUMBER: _ClassVar[int]

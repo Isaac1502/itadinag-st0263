@@ -29,6 +29,12 @@ def send_dir_request(stub, dir):
     print(response.message)
 
 
+def download_request(stub, file_request):
+    peers = stub.Download(file_request)
+
+    print(peers)
+
+
 def guide_login(stub):
     print("Requesting log in from server.")
     login_request(
@@ -66,6 +72,11 @@ def guide_send_dir(stub):
     )
 
 
+def guide_download_file(stub, title):
+    print(f"Requesting download {title}")
+    download_request(stub, nexus_transfer_pb2.FileRequest(title="Hotel California"))
+
+
 def run():
     # pclient implementation
     with grpc.insecure_channel(f"{SERVER_IP}:{SERVER_PORT}") as channel:
@@ -75,6 +86,8 @@ def run():
         guide_logout(stub)
         time.sleep(3)
         guide_send_dir(stub)
+        time.sleep(3)
+        guide_download_file(stub, "Bohemian Rhapsody")
 
 
 if __name__ == "__main__":

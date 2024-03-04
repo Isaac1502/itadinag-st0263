@@ -35,6 +35,16 @@ class NexusTransferStub(object):
                 request_serializer=nexus__transfer__pb2.Dir.SerializeToString,
                 response_deserializer=nexus__transfer__pb2.Response.FromString,
                 )
+        self.Download = channel.unary_stream(
+                '/nexustransfer.NexusTransfer/Download',
+                request_serializer=nexus__transfer__pb2.FileRequest.SerializeToString,
+                response_deserializer=nexus__transfer__pb2.Peer.FromString,
+                )
+        self.Upload = channel.unary_unary(
+                '/nexustransfer.NexusTransfer/Upload',
+                request_serializer=nexus__transfer__pb2.FileRequest.SerializeToString,
+                response_deserializer=nexus__transfer__pb2.Peer.FromString,
+                )
 
 
 class NexusTransferServicer(object):
@@ -69,6 +79,20 @@ class NexusTransferServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def Download(self, request, context):
+        """download a file
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Upload(self, request, context):
+        """upload a file
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_NexusTransferServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -91,6 +115,16 @@ def add_NexusTransferServicer_to_server(servicer, server):
                     servicer.SendDirectory,
                     request_deserializer=nexus__transfer__pb2.Dir.FromString,
                     response_serializer=nexus__transfer__pb2.Response.SerializeToString,
+            ),
+            'Download': grpc.unary_stream_rpc_method_handler(
+                    servicer.Download,
+                    request_deserializer=nexus__transfer__pb2.FileRequest.FromString,
+                    response_serializer=nexus__transfer__pb2.Peer.SerializeToString,
+            ),
+            'Upload': grpc.unary_unary_rpc_method_handler(
+                    servicer.Upload,
+                    request_deserializer=nexus__transfer__pb2.FileRequest.FromString,
+                    response_serializer=nexus__transfer__pb2.Peer.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -168,5 +202,39 @@ class NexusTransfer(object):
         return grpc.experimental.unary_unary(request, target, '/nexustransfer.NexusTransfer/SendDirectory',
             nexus__transfer__pb2.Dir.SerializeToString,
             nexus__transfer__pb2.Response.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def Download(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_stream(request, target, '/nexustransfer.NexusTransfer/Download',
+            nexus__transfer__pb2.FileRequest.SerializeToString,
+            nexus__transfer__pb2.Peer.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def Upload(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/nexustransfer.NexusTransfer/Upload',
+            nexus__transfer__pb2.FileRequest.SerializeToString,
+            nexus__transfer__pb2.Peer.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

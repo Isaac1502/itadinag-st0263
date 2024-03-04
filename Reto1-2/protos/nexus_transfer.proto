@@ -22,6 +22,12 @@ service NexusTransfer {
 
     // send peer's files directory
     rpc SendDirectory(Dir) returns (Response) {}
+
+    // download a file
+    rpc Download(FileRequest) returns (stream Peer) {}
+
+    // upload a file
+    rpc Upload(FileRequest) returns (Peer) {}
 }
 
 // Messages definition
@@ -52,6 +58,10 @@ message File {
     string album = 3;
     string duration = 4;
     float size_MB = 5;
+}
+
+message FileRequest {
+    string title = 1;
 }
 
 message Dir {
