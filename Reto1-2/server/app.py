@@ -40,6 +40,22 @@ def logout_server():
     return {"message": f"peer {url} has been logged out."}, 200
 
 
+@app.post("/directory")
+def post_directory():
+    request_data = request.get_json()
+    url = request_data["url"]
+    ip = request_data["ip_address"]
+    port = request_data["port"]
+    process = f"{ip}:{port}"
+
+    files = request_data["files"]
+    for file in files:
+        peers[process]["data"].append(file)
+
+    print(peers[process])
+    return {"message": "directory updated."}, 201
+
+
 @app.get("/search")
 def get_element():
     request_data = request.get_json()

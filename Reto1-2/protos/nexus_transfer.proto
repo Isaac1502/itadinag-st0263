@@ -21,7 +21,7 @@ service NexusTransfer {
     rpc Ping(Call) returns (Response) {}
 
     // send peer's files directory
-    rpc SendDirectory(stream Files) return (Response) {}
+    rpc SendDirectory(Dir) returns (Response) {}
 }
 
 // Messages definition
@@ -44,4 +44,17 @@ message Response {
 
 message Call {
     bool flag = 1;
+}
+
+message File {
+    string title = 1;
+    string artist = 2;
+    string album = 3;
+    string duration = 4;
+    float size_MB = 5;
+}
+
+message Dir {
+    Peer peer = 1;
+    repeated File files = 2;
 }

@@ -70,6 +70,27 @@ class NexusPServicer(nexus_transfer_pb2_grpc.NexusTransferServicer):
         print(f"ping from server.")
         return nexus_transfer_pb2.Response(message="Up and running.", status=200)
 
+    def SendDirectory(self, request, context):
+        print(
+            f"peer {request.peer.url} requested to publish the directory to the server."
+        )
+        print(request.files)
+        payload = {
+            "url": request.peer.url,
+            "ip_address": request.peer.ip_address,
+            "port": request.peer.port,
+            "files": request.files,
+        }
+        query = req.post(
+            f"http://{SERVER_IP}:{SERVER_PORT}/directory",
+            json=payload,
+            verify=False,
+            headers={"Connection": "close"},
+        )
+
+        response = format_response(query, 201)
+        return response
+
 
 def serve():
     print("Server listenning on port: 5005")

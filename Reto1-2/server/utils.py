@@ -31,7 +31,7 @@ def check_peers():
                     val["status"] = False
                 else:
                     print(f"{url} {response.message} Status: {response.status}")
-        time.sleep(15)
+        time.sleep(1500)
 
 
 # Background thread to ping every peer logged in.

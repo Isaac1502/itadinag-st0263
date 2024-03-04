@@ -5,6 +5,8 @@ import grpc
 import nexus_transfer_pb2
 import nexus_transfer_pb2_grpc
 
+from peer.server.pserver_db import files
+
 SERVER_IP = "127.0.0.1"
 SERVER_PORT = 5005
 
@@ -19,6 +21,12 @@ def logout_request(stub, peer):
     logged_out = stub.Logout(peer)
 
     print(logged_out.message)
+
+
+def send_dir_request(stub, dir):
+    response = stub.SendDirectory(dir)
+
+    print(response.message)
 
 
 def guide_login(stub):
@@ -45,6 +53,19 @@ def guide_logout(stub):
     )
 
 
+def guide_send_dir(stub):
+    print("Requesting publish directory to the server.")
+    send_dir_request(
+        stub,
+        nexus_transfer_pb2.Dir(
+            peer=nexus_transfer_pb2.Peer(
+                url="http://127.0.0.4:4004", ip_address="127.0.0.4", port=4004
+            ),
+            files=files,
+        ),
+    )
+
+
 def run():
     # pclient implementation
     with grpc.insecure_channel(f"{SERVER_IP}:{SERVER_PORT}") as channel:
@@ -52,6 +73,8 @@ def run():
         guide_login(stub)
         time.sleep(3)
         guide_logout(stub)
+        time.sleep(3)
+        guide_send_dir(stub)
 
 
 if __name__ == "__main__":
