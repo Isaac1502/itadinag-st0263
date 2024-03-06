@@ -1,5 +1,7 @@
 from flask import Flask, request
 
+import random
+
 from db import peers
 from utils import ping
 
@@ -52,7 +54,10 @@ def post_directory():
     for file in files:
         peers[process]["data"].append(file)
 
-    print(peers[process])
+    for peer, val in peers.items():
+        print(peer)
+        for files in val["data"]:
+            print(f"    {files}")
     return {"message": "directory updated."}, 201
 
 
@@ -62,16 +67,26 @@ def get_element():
     element = request_data["element"]
 
     matched_peers = []
+    print("Here", peers)
 
     for peer, val in peers.items():
         for peer_file in val["data"]:
-            if peer_file == element:
+            if peer_file["title"] == element:
                 matched_peers.append(peer)
 
     if not len(matched_peers):
         return {"message": f"{element} was not found."}
 
     return matched_peers
+
+
+@app.get("/available")
+def get_available_peer():
+    for _ in range(len(peers) - 1):
+        peer = random.choice(list(peers.keys()))
+        if peers[peer]["status"]:
+            return peer
+    return {"message": f"There is no available peers."}
 
 
 if __name__ == "__main__":

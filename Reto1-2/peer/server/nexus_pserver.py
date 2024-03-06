@@ -78,7 +78,7 @@ class NexusPServicer(nexus_transfer_pb2_grpc.NexusTransferServicer):
 
         for file in request.files:
             file_dict = {
-                "title": file.title.lower(),
+                "title": file.title,
                 "album": file.album,
                 "duration": file.duration,
                 "size_MB": file.size_MB,
@@ -105,19 +105,36 @@ class NexusPServicer(nexus_transfer_pb2_grpc.NexusTransferServicer):
         print(f"peer requested to download {request.title}")
 
         payload = {
-            "element": request.title.lower(),
+            "element": request.title,
         }
 
-        peers_with_file = req.post(
+        query = req.get(
             f"http://{SERVER_IP}:{SERVER_PORT}/search",
             json=payload,
             verify=False,
             headers={"Connection": "close"},
         )
 
-        print(peers_with_file)
+        peers_with_file = query.json()
+        for url in peers_with_file:
+            process, port = url.split(":")
+            yield nexus_transfer_pb2.Peer(url=url, ip_address=process, port=int(port))
 
-        return peers_with_file
+    def Upload(self, request, context):
+        print(f"peer requested to upload {request.title}")
+
+        query = req.get(
+            f"http://{SERVER_IP}:{SERVER_PORT}/available",
+            verify=False,
+            headers={"Connection": "close"},
+        )
+
+        available_peer = query.text
+        print(available_peer)
+        process, port = available_peer.split(":")
+        return nexus_transfer_pb2.Peer(
+            url=available_peer, ip_address=process, port=int(port)
+        )
 
 
 def serve():
