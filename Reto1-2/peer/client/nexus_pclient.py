@@ -38,10 +38,33 @@ def download_request(stub, file_request):
         print(f"    {peer.url}")
 
 
+def download(stub, file):
+    print(f"{file.title} downloaded")
+
+    file_downloaded = stub.ConnPeerDownload(file)
+    formated_file = {
+        "title": file_downloaded.title,
+        "artist": file_downloaded.artist,
+        "album": file_downloaded.album,
+        "duration": file_downloaded.duration,
+        "size_MB": file_downloaded.size_MB,
+    }
+    files.append(formated_file)
+
+    # Update directory on server
+    guide_send_dir(stub)
+
+
 def upload_request(stub, file_request):
     peer = stub.Upload(file_request)
 
     print(f"Available peer: {peer.url}")
+
+
+def upload(stub, file):
+    response = stub.ConnPeerUpload(file)
+
+    print(response.message)
 
 
 def guide_login(stub):
@@ -81,14 +104,26 @@ def guide_send_dir(stub):
     )
 
 
-def guide_download_file(stub, title):
+def guide_download_request(stub, title):
     print(f"Requesting download {title}")
     download_request(stub, nexus_transfer_pb2.FileRequest(title=title))
 
 
-def guide_upload_file(stub, title):
+def guide_upload_request(stub, title):
     print(f"Requesting upload {title}")
     upload_request(stub, nexus_transfer_pb2.FileRequest(title=title))
+
+
+def guide_download(stub, title):
+    print(f"Downloading {title}")
+    download(stub, nexus_transfer_pb2.FileRequest(title=title))
+
+
+def guide_upload(stub, file):
+    title = file["title"]
+    print(f"Uploading {title}")
+
+    upload(stub, nexus_transfer_pb2.File(**file))
 
 
 def run():
@@ -101,14 +136,20 @@ def run():
         guide_send_dir(stub)
         time.sleep(LOADING)
 
-        guide_download_file(stub, "Bohemian Rhapsody")
+        guide_download_request(stub, "Bohemian Rhapsody")
         time.sleep(LOADING)
 
-        guide_upload_file(stub, "Hotel California")
+        guide_download(stub, "Imagine")
+        time.sleep(LOADING)
+
+        guide_upload_request(stub, files[0]["title"])
+        time.sleep(LOADING)
+
+        guide_upload(stub, files[0])
         time.sleep(LOADING)
 
         guide_logout(stub)
-        time.sleep(3)
+        time.sleep(LOADING)
 
 
 if __name__ == "__main__":

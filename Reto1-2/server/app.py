@@ -67,7 +67,6 @@ def get_element():
     element = request_data["element"]
 
     matched_peers = []
-    print("Here", peers)
 
     for peer, val in peers.items():
         for peer_file in val["data"]:

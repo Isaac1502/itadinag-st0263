@@ -6,6 +6,7 @@ import logging
 import grpc
 import nexus_transfer_pb2
 import nexus_transfer_pb2_grpc
+from peer.server.pserver_db import files
 
 
 SERVER_IP = "127.0.0.1"
@@ -134,6 +135,35 @@ class NexusPServicer(nexus_transfer_pb2_grpc.NexusTransferServicer):
         process, port = available_peer.split(":")
         return nexus_transfer_pb2.Peer(
             url=available_peer, ip_address=process, port=int(port)
+        )
+
+    def ConnPeerDownload(self, request, context):
+        print(f"Sending {request.title}...")
+
+        for file in files:
+            if file["title"] == request.title:
+                return nexus_transfer_pb2.File(
+                    title=file["title"],
+                    artist=file["artist"],
+                    album=file["album"],
+                    duration=file["duration"],
+                    size_MB=file["size_MB"],
+                )
+
+    def ConnPeerUpload(self, request, context):
+        print(f"Getting {request.title}")
+
+        formated_file = {
+            "title": request.title,
+            "artist": request.artist,
+            "album": request.album,
+            "duration": request.duration,
+            "size_MB": request.size_MB,
+        }
+
+        files.append(formated_file)
+        return nexus_transfer_pb2.Response(
+            message="File successfully uploaded.", status=201
         )
 
 
