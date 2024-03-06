@@ -45,6 +45,16 @@ class NexusTransferStub(object):
                 request_serializer=nexus__transfer__pb2.FileRequest.SerializeToString,
                 response_deserializer=nexus__transfer__pb2.Peer.FromString,
                 )
+        self.ConnPeerDownload = channel.unary_unary(
+                '/nexustransfer.NexusTransfer/ConnPeerDownload',
+                request_serializer=nexus__transfer__pb2.FileRequest.SerializeToString,
+                response_deserializer=nexus__transfer__pb2.File.FromString,
+                )
+        self.ConnPeerUpload = channel.unary_unary(
+                '/nexustransfer.NexusTransfer/ConnPeerUpload',
+                request_serializer=nexus__transfer__pb2.File.SerializeToString,
+                response_deserializer=nexus__transfer__pb2.Response.FromString,
+                )
 
 
 class NexusTransferServicer(object):
@@ -80,14 +90,28 @@ class NexusTransferServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def Download(self, request, context):
-        """download a file
+        """download a file request
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def Upload(self, request, context):
-        """upload a file
+        """upload a file request
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ConnPeerDownload(self, request, context):
+        """download file from peer
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ConnPeerUpload(self, request, context):
+        """upload file to peer
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -125,6 +149,16 @@ def add_NexusTransferServicer_to_server(servicer, server):
                     servicer.Upload,
                     request_deserializer=nexus__transfer__pb2.FileRequest.FromString,
                     response_serializer=nexus__transfer__pb2.Peer.SerializeToString,
+            ),
+            'ConnPeerDownload': grpc.unary_unary_rpc_method_handler(
+                    servicer.ConnPeerDownload,
+                    request_deserializer=nexus__transfer__pb2.FileRequest.FromString,
+                    response_serializer=nexus__transfer__pb2.File.SerializeToString,
+            ),
+            'ConnPeerUpload': grpc.unary_unary_rpc_method_handler(
+                    servicer.ConnPeerUpload,
+                    request_deserializer=nexus__transfer__pb2.File.FromString,
+                    response_serializer=nexus__transfer__pb2.Response.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -236,5 +270,39 @@ class NexusTransfer(object):
         return grpc.experimental.unary_unary(request, target, '/nexustransfer.NexusTransfer/Upload',
             nexus__transfer__pb2.FileRequest.SerializeToString,
             nexus__transfer__pb2.Peer.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def ConnPeerDownload(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/nexustransfer.NexusTransfer/ConnPeerDownload',
+            nexus__transfer__pb2.FileRequest.SerializeToString,
+            nexus__transfer__pb2.File.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def ConnPeerUpload(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/nexustransfer.NexusTransfer/ConnPeerUpload',
+            nexus__transfer__pb2.File.SerializeToString,
+            nexus__transfer__pb2.Response.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
