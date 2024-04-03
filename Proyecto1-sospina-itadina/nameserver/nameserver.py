@@ -75,11 +75,40 @@ class NameServerService(rpyc.Service):
         self.exposed_refresh()
         print("Name server started...")
         thread = Thread(target=self.check_aliveness, args=(0,), daemon=True)
+        thread.start()
+
+    def on_connect(self, conn):
+        sock = conn._channel.stream.sock
+        print("New connection: ", sock.getpeername())
+
+    def on_disconnect(self, conn):
+        sock = conn._channel.stream.sock
+        print("Connection terminated: ", sock.getpeername())
 
     def exposed_refresh(self):
-        pass
+        configParser = ConfigParser()
+        configParser.read("nameserver.conf")
+        self.config = dict(configParser["default"])
+
+        self.ABSOLUTE_ROOT = self.config["volume_name"]
+        self.STRUCT_ROOT = self.ABSOLUTE_ROOT[1:]
+
+        self.refresh_struct()
+        self.refresh_ss_blocks_map()
+        print("DFS Refreshed.")
+
+        return self.get_return(1, "System refreshed.")
 
     def check_aliveness(self):
+        pass
+
+    def refresh_struct():
+        pass
+
+    def refresh_ss_blocks_map():
+        pass
+
+    def get_return():
         pass
 
 
