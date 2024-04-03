@@ -99,13 +99,63 @@ class NameServerService(rpyc.Service):
 
         return self.get_return(1, "System refreshed.")
 
+    def refresh_struct(self):
+        # Load DFS Structure
+        with open(self.config.get("dfs_struct_map_path"), "r") as input_file:
+            try:
+                data = json.load(input_file)
+            except:
+                data = None
+        if data is None or data == "" or len(data) == 0:
+            data = {}
+        self.struct = data
+        print("=== RELOADED: Directory Structure ===")
+
+    def save_struct(self):
+        with open(self.config.get("dfs_struct_map_path"), "w") as out_file:
+            json.dump(self.struct, out_file)
+        print("=== UPDATED: Directory Structure ===")
+        self.refresh_struct()
+
+    def refresh_ss_blocks_map(self):
+        # Load storage server / storage node blocks map
+        with open(self.config.get("ss_blocks_map_path"), "r") as input_file:
+            self.ss_blocks_map = json.load(input_file)
+        print("=== RELOADED: Server blocks mapping ===")
+
+    def save_ss_blocks_map(self):
+        with open(self.config.get("ss_blocks_map_path"), "w") as output_file:
+            json.dump(self.ss_blocks_map, output_file)
+        print("=== UPDATED: Server blocks mapping ===")
+        self.refresh_ss_blocks_map()
+
+    def path_list(self, path):
+        path = (
+            path.replace("/", " ").strip().split(" ")
+        )  # eg. ken/outer/inner --> [ken, outer, inner]
+        return [x for x in path if len(x.strip()) > 0]
+
+    # parse absolute path corresponding to the /ken disk in storage servers
+    def absolute_path(self, path):
+        # check if already begins with /ken
+        if path[:1] != "/":
+            path = "/" + path
+        if path[:4] != self.ABSOLUTE_ROOT:
+            path = os.path.join(self.ABSOLUTE_ROOT, path)
+        return path
+
+    def exposed_get_alive_servers(self, max_needed=-1):
+        out = []
+        i = 0
+        for name, value in self.ss_blocks_map.items():
+            if value[0] == 1:
+                out.append(name)
+                i += 1
+                if max_needed > 0 and i == max_needed:
+                    return out
+        return out
+
     def check_aliveness(self):
-        pass
-
-    def refresh_struct():
-        pass
-
-    def refresh_ss_blocks_map():
         pass
 
     def get_return():
