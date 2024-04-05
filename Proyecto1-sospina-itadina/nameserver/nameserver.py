@@ -199,13 +199,48 @@ class NameServerService(rpyc.Service):
         print('Marked {} as "alive".'.format(ss_id))
 
     def check_aliveness(self, check_count):
-        pass
+        check_count += 1
+        print("Checking aliveness of storage servers... ({})".format(check_count))
+        modified = False
+        for name, value in self.ss_blocks_map.items():
+            ss = name.split(":")
+            if this_ss_is_alive(ss[0], ss[2]):
+                if int(value[0]) == 0:
+                    self.mark_server_alive(name)
+                    modified = True
+            else:
+                if int(value[0]) == 1:
+                    self.ss_blocks_map[name][0] = 0
+                    print("Marking {} as dead.".format(name))
+                    if len(value[1]) > 1:
+                        self.find_distribute_blocks(name, value[1])
+                        modified = True
 
-    def exposed_get_ss_having_this_block(self):
-        pass
+        if modified:
+            self.save_ss_blocks_map()
+        # aliveness check interval
+        time.sleep(int(self.config.get("check_ss_aliveness_interval")))
+        # repeat the process (dinamically)
+        self.check_aliveness(check_count)
 
-    def get_return():
-        pass
+    def exposed_get_ss_having_this_block(self, block_id, max_needed=-1, to_exclude=[]):
+        i = 0
+        out = []
+        for name, value in self.ss_blocks_map.items():
+            if value[0] == 1 and block_id in value[1]:
+                if name not in to_exclude:
+                    i += 1
+                    out.append(name)
+                    if max_needed > 0 and i >= max_needed:
+                        break
+        return out
+
+    def get_return(self, status=0, message="", data={}, nsconfig=False):
+        result = {"status": status, "message": message, "data": data}
+        if nsconfig:
+            result["nsconfig"] = self.config
+        result["dfs"] = self.struct
+        return json.dumps(result)
 
 
 if __name__ == "__main__":
