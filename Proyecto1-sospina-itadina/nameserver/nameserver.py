@@ -155,7 +155,53 @@ class NameServerService(rpyc.Service):
                     return out
         return out
 
-    def check_aliveness(self):
+    def find_distribute_blocks(self, source, target_blocks):
+        if len(target_blocks) == 0:
+            return
+
+        alive_servers = self.exposed_get_alive_servers()
+        if source in alive_servers:
+            alive_servers.remove(source)
+
+        if len(alive_servers) < 1:
+            print("No other alive servers to forward blocks from dead servers to.")
+            return False
+
+        for block in target_blocks:
+            temp = alive_servers
+            source_ss = self.exposed_get_ss_having_this_block(
+                block, to_exclude=[source]
+            )
+            temp = list(set(temp) - set(source_ss))
+
+            if source_ss in temp:
+                temp.remove(source_ss)
+            ask_ss_to_forward_blocks(source_ss[0], temp, [block])
+
+        print("{} blocks found & distributed.".format(len(target_blocks)))
+        return True
+
+    def exposed_mark_new_block(self, block_id, ss):
+        self.ss_blocks_map[ss][1].append(block_id)
+        self.save_ss_blocks_map()
+        print("New block {} at {}. Presence marked.".format(block_id, ss))
+
+    def delete_block_from_ss(self, block_id, ss):
+        if block_id in self.ss_blocks_map[ss][1]:
+            self.ss_blocks_map[ss][1].remove(block_id)
+            self.save_ss_blocks_map()
+            print('Block "{}" deleted.'.format(block_id))
+
+    def mark_server_alive(self, ss_id):
+        self.ss_blocks_map[ss_id][0] = 1
+        self.ss_blocks_map[ss_id][1] = []
+        send_directory_structure_to_sync(ss_id, self.struct)
+        print('Marked {} as "alive".'.format(ss_id))
+
+    def check_aliveness(self, check_count):
+        pass
+
+    def exposed_get_ss_having_this_block(self):
         pass
 
     def get_return():
