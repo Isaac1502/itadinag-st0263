@@ -242,6 +242,79 @@ class NameServerService(rpyc.Service):
         result["dfs"] = self.struct
         return json.dumps(result)
 
+    def exposed_initialize(self, forced=False):
+        if forced or not bool(self.struct):
+            self.struct[self.STRUCT_ROOT] = {}
+            self.save_struct()
+
+            for i, key in enumerate(self.ss_blocks_map.keys()):
+                self.ss_blocks_map[key][1] = []
+            self.save_ss_blocks_map()
+            run_cmd_storage_servers(
+                "sudo rm -rf {}/*".format(self.ABSOLUTE_ROOT),
+                self.exposed_get_alive_servers(),
+            )
+
+            status = 1
+            message = "Successfully initialized."
+        else:
+            status = 0
+            message = "DFS already initialized."
+
+        return self.get_return(
+            status, message, {"alive_servers": self.exposed_get_alive_servers()}
+        )
+
+    def exposed_get(self, path):
+        path = self.path_list(path)
+        try:
+            res = reduce(getitem, path, self.struct)
+            status = 1
+            message = "Resource found!"
+            data = {} if not bool(res) or res == "" else res
+
+        except:
+            status = 0
+            message = "No resource found on given path!"
+            data = {}
+
+        return self.get_return(status, message, data, nsconfig=True)
+
+    def exposed_mkdir(self, path):
+        path = self.path_lsit(path)
+        data = self.struct
+        for key in path:
+            try:
+                data = data[key]
+            except:
+                data[key] = {}
+                data = data[key]
+        self.save_struct()
+        path - self.absolute_path("/".join(path))
+        print(path)
+        run_cmd_storage_servers(
+            "sudo mkdir -p {}".format(path), self.exposed_get_alive_servers()
+        )
+        return self.get_return(1, "New directory created.")
+
+    def exposed_new_file(self):
+        pass
+
+    def recursive_file_search(self):
+        pass
+
+    def exposed_files_in_directory(self):
+        pass
+
+    def exposed_delete(self):
+        pass
+
+    def exposed_copy(self):  # TODO
+        pass
+
+    def exposed_move(self):  # TODO
+        pass
+
 
 if __name__ == "__main__":
     from rpyc.utils.server import ThreadedServer
