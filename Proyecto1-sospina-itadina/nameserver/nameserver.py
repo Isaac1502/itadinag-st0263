@@ -297,13 +297,34 @@ class NameServerService(rpyc.Service):
         )
         return self.get_return(1, "New directory created.")
 
-    def exposed_new_file(self):
-        pass
+    def exposed_new_file(self, struct_path, ss_block_map):
+        path = self.path_list(struct_path)
+        data = self.struct
 
-    def recursive_file_search(self):
-        pass
+        blocks = []
+        for x in ss_block_map:
+            if x[1] not in blocks:
+                blocks.append(x[1])
+            self.exposed_mark_new_block(x[1], x[0])
 
-    def exposed_files_in_directory(self):
+        for key in path[:-1]:
+            data = data[key]
+        data[path[-1]] = {}
+        data["blocks"] = blocks
+
+        self.save_struct()
+        return self.get_return(1, "File put in remote directory.")
+
+    def recursive_file_search(self, dir, struct_content):
+        try:
+            blocks = struct_content["blocks"]
+            self.searched_files.append([dir, blocks])
+            return
+        except:
+            for key, value in struct_content.items():
+                temp = self.recursive_file_search(key, value)
+
+    def exposed_files_in_directory(self, dir, struct_content, max_needed=-1):
         pass
 
     def exposed_delete(self):
