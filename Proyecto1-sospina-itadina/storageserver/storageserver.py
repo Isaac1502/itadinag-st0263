@@ -3,11 +3,21 @@ import rpyc
 
 
 class StorageServerService(rpyc.Service):
-    def __init__(self):
-        self.storage = {}
+  ROOT = "/ken"
+
+  def __init__(self):
+    print("StorageServerService initialized...")
+
+  def on_connect(self, conn):
+    sock = conn._channel.stream.sock
+    print("Connection established with", sock.getpeername())
+
+  def on_disconnect(self, conn):
+    sock = conn._channel.stream.sock
+    print("Connection closed with", sock.getpeername())
 
 
-def main(port=18861):
+  def main(port=18861):
     from rpyc.utils.server import ThreadedServer
 
     t = ThreadedServer(StorageServerService(), port=port)
@@ -15,7 +25,7 @@ def main(port=18861):
     t.start()
 
 
-if __name__ == "__main__":
+  if __name__ == "__main__":
     args = sys.argv[1:]
     if len(args) > 1:
         print("Wrong usage: You can only specify [port] as argument.")
