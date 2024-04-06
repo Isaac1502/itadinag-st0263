@@ -87,7 +87,7 @@ class StorageServerService(rpyc.Service):
 
 
   # Modify my directory structure to fit given structure
-  def exposed_adapt_this_directory_structure(self, struct):
+  def exposed_adapt_this_directory_structure(self, struct): # sync_directory_structure
     struct = json.loads(struct)
 
     for root, dirs, files in os.walk('/ken/'):
@@ -105,26 +105,25 @@ class StorageServerService(rpyc.Service):
 
 
   # use subprocess to run shell command on Unix system
-  def exposed_run_shell_cmd(self, formatted_cmd_str):
+  def exposed_run_shell_cmd(self, formatted_cmd_str): # run_shell_cmd
     from subprocess import run
     run("sudo chmod -R -v 777 /ken/", shell=True, check=True)
     run(formatted_cmd_str, shell=True, check=True)
 
 def main(port=18861):
   from rpyc.utils.server import ThreadedServer
-
-  t = ThreadedServer(StorageServerService(), port=port)
-  print("Server details: ({}, {})".format(t.host, port))
+  t = ThreadedServer(StorageServerService(),port=port)
+  print('Server details: ({}, {})'.format(t.host, port))
   t.start()
 
 
   if __name__ == "__main__":
     args = sys.argv[1:]
-    if len(args) > 1:
-        print("Wrong usage: You can only specify [port] as argument.")
-        sys.exit(0)
-    elif len(args) == 0:
-        port = 18861
+    if len(args)>1:
+      print('Wrong usage: You can only specify [port] as argument.')
+      sys.exit(0)
+    elif len(args)==0:
+      port = 18861
     else:
-        port = int(args[0])
+      port = int(args[0])
     main(port)
