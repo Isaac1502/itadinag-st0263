@@ -17,12 +17,12 @@ class StorageServerService(rpyc.Service):
     print("Connection closed with", sock.getpeername())
 
 
-  def main(port=18861):
-    from rpyc.utils.server import ThreadedServer
+def main(port=18861):
+  from rpyc.utils.server import ThreadedServer
 
-    t = ThreadedServer(StorageServerService(), port=port)
-    print("Server details: ({}, {})".format(t.host, port))
-    t.start()
+  t = ThreadedServer(StorageServerService(), port=port)
+  print("Server details: ({}, {})".format(t.host, port))
+  t.start()
 
 
   if __name__ == "__main__":
