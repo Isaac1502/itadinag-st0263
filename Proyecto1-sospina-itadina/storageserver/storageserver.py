@@ -2,6 +2,9 @@ import sys
 import rpyc
 import os
 import random
+import json
+from functools import reduce
+from operator import getitem
 
 # Methods exposed to clients using rpyc
 class StorageServerService(rpyc.Service):
@@ -71,6 +74,41 @@ class StorageServerService(rpyc.Service):
           self.exposed_send_my_block(target_path, target, target_path)
           self.inform_ns_block_sent(name, target)
           print('My block {} forwarded to {}'.format(name, target))
+
+  def maintain_subdirectories(self, root, to_add, to_remove):
+    for x in to_add:
+      cmd = "sudo mkdir {}".format(os.path.join(root, x))
+      self.exposed_run_shell_cmd(cmd)
+      self.exposed_run_shell_cmd("sudo chmod -R -v 777 {}".format(os.path.join(root, x)))
+    
+    for y in to_remove:
+      cmd = "sudo rm -rf {}".format(os.path.join(root, y))
+      self.exposed_run_shell_cmd(cmd)
+
+
+  # Modify my directory structure to fit given structure
+  def exposed_adapt_this_directory_structure(self, struct):
+    struct = json.loads(struct)
+
+    for root, dirs, files in os.walk('/ken/'):
+
+      keys = root.replace("/", " ").strip().split(" ")
+      data = reduce(getitem, keys, struct)
+      
+      source = [x for x in list(data.keys()) if "blocks" not in data[x]]
+      existing = dirs
+
+      to_add = list(set(source) - set(existing))
+      to_remove = list(set(existing) - set(source))
+
+      self.maintain_subdirectories(root, to_add, to_remove)
+
+
+  # use subprocess to run shell command on Unix system
+  def exposed_run_shell_cmd(self, formatted_cmd_str):
+    from subprocess import run
+    run("sudo chmod -R -v 777 /ken/", shell=True, check=True)
+    run(formatted_cmd_str, shell=True, check=True)
 
 def main(port=18861):
   from rpyc.utils.server import ThreadedServer
