@@ -27,4 +27,8 @@ except ModuleNotFoundError:
   print(HTML('> <red>Install <orange>tqdm</orange> module first.</red>\n > sudo pip3 install tqdm\n'))
   sys.exit(0)
 
+CONN = None
+NS_IP = None
+NS_PORT = None
+
 

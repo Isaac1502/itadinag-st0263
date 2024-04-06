@@ -1,6 +1,7 @@
 import sys
 import rpyc
 import os
+import random
 
 # Methods exposed to clients using rpyc
 class StorageServerService(rpyc.Service):
@@ -38,6 +39,38 @@ class StorageServerService(rpyc.Service):
       data = file.read()
     print('Block "{}" requested.'.format(block_path.rsplit("/", 1)[1]))
     return data
+  
+  def exposed_send_my_block(self, origin_block_path, destination, destination_block_path): # send_file_to_server
+    dest = destination.split(":")
+    try:
+      conn = rpyc.connect(dest[0], dest[2])
+      with open(origin_block_path, "rb") as lf:
+        data = lf.read()
+        conn.root.put(destination_block_path, data)
+    except ConnectionRefusedError:
+      print('Connection to {} refused while sending block'.format(dest))
+
+  # block_received is automatically done by ns, only worry about block sent here
+  def inform_ns_block_sent(self, block_id, ss_id): # inform_ns_block_sent
+    ns = "ns:3.134.8.132:18861"
+    ns = ns.split(":")
+    try:
+      # here we need to connect to Name Server, IP, Port of NS needed.
+      conn = rpyc.connect(ns[0], ns[2])
+      conn.root.mark_new_block(block_id, ss_id)
+      print('Block sent informed to NS.')
+    except ConnectionRefusedError:
+      print("Connection refused when trying to connect to NS to inform of blocks sent.")
+
+  def exposed_forward_my_blocks(self, blocks, dests): # redistribute_data_blocks
+    for root, dirs, files in os.walk('/ken'):
+      for name in files:
+        if name in blocks:
+          target = random.choice(dests)
+          target_path = os.path.join(root, name)
+          self.exposed_send_my_block(target_path, target, target_path)
+          self.inform_ns_block_sent(name, target)
+          print('My block {} forwarded to {}'.format(name, target))
 
 def main(port=18861):
   from rpyc.utils.server import ThreadedServer
