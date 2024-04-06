@@ -325,10 +325,55 @@ class NameServerService(rpyc.Service):
                 temp = self.recursive_file_search(key, value)
 
     def exposed_files_in_directory(self, dir, struct_content, max_needed=-1):
-        pass
+        self.searched_files = []
+        self.recursive_file_search(dir, struct_content)
+        result = copy.deepcopy(self.searched_files)
+        self.searched_files = []
 
-    def exposed_delete(self):
-        pass
+        total = len(result)
+        result = (
+            result[: int(max_needed)]
+            if max_needed > 0 and total > max_needed
+            else result
+        )
+        return result
+
+    def exposed_delete(self, path, part_of_moving=False, force_delete=False):
+        path = path[:-1] if path[-1] == "/" else path
+        keys = self.path_list(path)
+
+        temp = json.loads(self.exposed_get(path))
+        if temp["status"] == 0:
+            return self.get_return(0, "Resource not found at {}.".format(path))
+
+        data = self.struct
+        for key in keys[:-1]:
+            data = data[key]
+
+        temp = data
+        files_inside = self.exposed_files_in_directory(keys[-1], temp[keys[-1]])
+        print(files_inside)
+
+        if len(files_inside) > 0:
+            if not force_delete:
+                return self.get_return(0, "A file or directory with files in it given!")
+
+        target_ss = self.exposed_get_alive_servers()
+        for file_name, blocks in files_inside:
+            for ss in target_ss:
+                for block in blocks:
+                    self.delete_block_from_ss(block, ss)
+
+        del data[keys[-1]]
+        self.save_struct()
+
+        if not part_of_moving:
+            run_cmd_storage_servers(
+                "sudo rm -rf {}".format(
+                    self.absolute_path(path), self.exposed_get_alive_servers()
+                )
+            )
+        return self.get_return(1, "Deleted resource at {}".format(path))
 
     def exposed_copy(self):  # TODO
         pass
