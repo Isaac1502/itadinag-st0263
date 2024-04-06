@@ -370,8 +370,8 @@ class NameServerService(rpyc.Service):
 
         if not part_of_moving:
             run_cmd_storage_servers(
-                "sudo rm -rf {}".format(
-                    self.absolute_path(path), )
+                "sudo rm -rf {}".format(self.absolute_path(path)),
+                self.exposed_get_alive_servers(),
             )
         return self.get_return(1, "Deleted resource at {}".format(path))
 
