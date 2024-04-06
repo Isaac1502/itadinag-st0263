@@ -3,9 +3,10 @@ try:
 except ImportError:
     from ConfigParser import ConfigParser
 
-import os, json, copy, time
-import random
-from uuid import uuid4
+import os
+import json
+import copy
+import time
 from functools import reduce
 from operator import getitem
 import rpyc
@@ -370,8 +371,7 @@ class NameServerService(rpyc.Service):
         if not part_of_moving:
             run_cmd_storage_servers(
                 "sudo rm -rf {}".format(
-                    self.absolute_path(path), self.exposed_get_alive_servers()
-                )
+                    self.absolute_path(path), )
             )
         return self.get_return(1, "Deleted resource at {}".format(path))
 
