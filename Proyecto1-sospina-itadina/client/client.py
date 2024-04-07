@@ -70,3 +70,42 @@ def connect_to_ns(count_retry=1, max_retry=3):
         print(HTML("<green>Connected!</green>"))
         time.sleep(1)
         return True
+
+
+def ns_is_responding():
+    global CONN
+    try:
+        temp = CONN.root.refresh()
+        return True
+    except EOFError:
+        CONN = None
+        print(HTML("<red>Error</red>: Connection to nameserver lost!"))
+        time.sleep(0.7)
+        print(HTML("<green>Retrying</green> in 5 seconds..."))
+        time.sleep(5)
+
+        return True if connect_to_ns() else False
+
+
+def put_in_ss(ss, remote_path, block_name, block_data):
+    ss = ss.split(":")
+    try:
+        conn = rpyc.connect(ss[1], ss[2])
+        target_path = os.path.join(remote_path, block_name)
+        conn.root.put(target_path, block_data)
+    except ConnectionRefusedError:
+        print(
+            "Connection refused by {} while trying to put block {}".format(
+                ss, block_name
+            )
+        )
+    return None
+
+
+def get_from_ss(ss, remote_path):
+    ss = ss.split(":")
+    try:
+        conn = rpyc.connect(ss[1], ss[2])
+        return conn.root.get(remote_path)
+    except ConnectionRefusedError:
+        print("Connection refused by {} while trying to get {}".format(ss, remote_path))
