@@ -179,3 +179,254 @@ class MyPrompt(Cmd):
             )
             return None
         return args
+
+    def print_help(self, form, result):
+        form = form.split(" ")
+        form[0] = "<orange>{}</orange>".format(form[0])
+        form = " ".join(form)
+        print(HTML("Usage Format: {} \nResult: {}\n".format(form, result)))
+
+    def print_response(self, response):
+        output = (
+            "<green>Success</green>:"
+            if response["status"] == 1
+            else "<red>Failed</red>:"
+        )
+        output += " {}".format(response["message"])
+        print(HTML(output))
+
+    def print_dictionary(self, d):
+        print("")
+        print(HTML("<orange>File System</orange>:"))
+        prettyDictionary(d, 0)
+        print("")
+
+    def do_quit(self, inp):
+        print(HTML("\n-------------- <red>Session Ended</red> -------------- \n"))
+        return True
+
+    def help_quit(self):
+        self.print_help("[exit] [x] [q] [Ctrl-D]", "<red>Quit</red> the application.")
+
+    def change_current_directory(self, dir):
+        self.CURRENT_DIR = dir
+        dir = "." + dir[4:] if dir[:4] == self.ABSOLUTE_ROOT else dir
+        self.prompt = "[KEN-DFS] (" + dir + ") >> "
+
+    def do_show(self, args):
+        args = args.strip().split(" ", 1)
+
+        cmd = None
+        myargs = ""
+        if len(args) == 1:
+            cmd = args[0]
+        elif len(args) > 1:
+            cmd, myargs = args
+
+        if cmd and cmd != "show":
+            my_cmd = "do_" + cmd
+            try:
+                method_to_call = getattr(self, my_cmd)
+                method_to_call(myargs)
+            except AttributeError:
+                print(HTML("No such command <red>{}</red>".format(cmd)))
+        if ns_is_responding:
+            result = json.loads(CONN.root.get("/ken"))["dfs"]
+            self.print_dictionary(result)
+
+    def help_show(self):
+        self.print_help(
+            "show [any_other_command]",
+            "Shows file system after performing any_other_command given.",
+        )
+
+    def do_init(self, args):
+        args = self.parse_args("init", args, 0, 1)
+
+        if not ns_is_responding():
+            self.do_quit()
+
+        result = {}
+        if self.parse_path(self.CURRENT_DIR) != self.ABSOLUTE_ROOT:
+            result["status"] = 0
+            result["message"] = "Can only initialize from root directory."
+        else:
+            if len(args) > 0 and args[0] == "-force":
+                result = json.loads(CONN.root.initialize(forced=True))
+            else:
+                result = json.loads(CONN.root.initialize())
+
+        if result["status"] == 1:
+            result["message"] += "\n Available size: " + parse_size_from_bytes(
+                1024 * 1024 * 1024 * len(CONN.root.get_alive_servers())
+            )
+        self.print_response(result)
+
+    def help_init(self):
+        self.print_help(
+            "init [-force]",
+            "Initialize the file system. Use <red>-force</red> to delete everything and restart.",
+        )
+
+    def parse_path(self, arg):
+        if arg == ".":
+            return self.CURRENT_DIR
+        elif arg == "..":
+            arg = self.CURRENT_DIR.rsplit("/", 1)[0]
+            return self.ABSOLUTE_ROOT if arg == "" else arg
+        elif arg[:4] == self.ABSOLUTE_ROOT:
+            # return absolute path, remove '/' at the end if there is.
+            return arg[:-1] if arg[-1] == "/" else arg
+        else:
+            # parse relative path
+            return os.path.join(self.CURRENT_DIR, arg)
+
+    def do_cd(self, dir):
+        args = self.parse_args("cd", dir, 1, 1)
+
+        if not ns_is_responding():
+            self.do_quit()
+
+        if args:
+            arg = self.parse_path(args[0])
+            print(HTML("Changing dir to: <green>{}</green>".format(arg)))
+            result = json.loads(CONN.root.get(arg))
+            if result["status"] == 1:
+                try:
+                    blocks = result["data"]["blocks"]
+                    result["status"] = 0
+                    result["message"] = "Can't <b>cd</b> to a file."
+                    self.print_response(result)
+                except:
+                    self.change_current_directory(arg)
+            else:
+                self.print_response(result)
+
+    def help_cd(self):
+        self.print_help("cd target_directory", "Change current directory.")
+
+    def do_ls(self, dir="."):
+        args = self.parse_args("ls", dir, 0, 1)
+        if args is None:
+            return
+        try:
+            arg = self.parse_path(args[0])
+        except IndexError:
+            arg = self.parse_path(args)
+
+        if not ns_is_responding():
+            self.do_quit()
+        result = json.loads(CONN.root.get(arg))
+
+        if result["status"] == 1:
+            try:
+                blocks = result["data"]["blocks"]
+                result["status"] = 0
+                result["message"] = "Can't <b>ls</b> to a file."
+                self.print_response(result)
+            except:
+                items = result["data"].keys()
+                out = []
+                for x in items:
+                    if x[:2] != "__":
+                        try:
+                            blocks = result["data"][x]["blocks"]
+                            out.append("<b>{}</b>".format(x))
+                        except:
+                            out.append("<b><green>{}</green></b>".format(x))
+                if len(items) == 0:
+                    out.append("<b>Empty directory!</b>")
+                print(HTML("\t".join(out)))
+        else:
+            self.print_response(result)
+
+    def help_ls(self):
+        self.print_help("ls [target_directory]", "List directory contents.")
+
+    def do_mkdir(self, dir):
+        args = self.parse_args("mkdir", dir, 1, 1)
+        if not ns_is_responding():
+            self.do_quit()
+        if args:
+            arg = self.parse_path(args[0])
+            print(arg)
+            temp = json.loads(CONN.root.get(arg))
+            if temp["status"] == 1:
+                result = {
+                    "status": 0,
+                    "message": "Directory already exists!",
+                    "data": {},
+                }
+            else:
+                result = json.loads(CONN.root.mkdir(arg))
+            self.print_response(result)
+
+    def help_mkdir(self):
+        self.print_help(
+            "mkdir dir_name", "Create new folder with given <orange>dir_name</orange>"
+        )
+
+    def do_mkfiles(self, files):
+        args = self.parse_args("mkfiles", files, 1)
+        if not ns_is_responding():
+            self.do_quit()
+        if args:
+            for arg in tqdm(args):
+                path = self.parse_path(arg)
+                if path[-1] == "/":
+                    path = path[:-1]
+
+                name = path.rsplit("/", 1)
+                file = name[1].rsplit(".", 1)
+
+                # print('Creating new file {} with extension {} at {}'.format(file[0], file[1], path))
+
+                result = {}
+                if len(file) != 2:
+                    result["status"] = 0
+                    result["message"] = (
+                        "Make sure file name is given with correct extension."
+                    )
+                else:
+                    result = json.loads(CONN.root.get(name[0]))
+                    if result["status"] == 0:
+                        pass
+                    else:
+                        result = json.loads(CONN.root.new_file(path, []))
+                        if result["status"] == 1:
+                            result["message"] = "New file created at {}".format(arg)
+                self.print_response(result)
+
+    def help_mkfiles(self):
+        self.print_help(
+            "mkfiles file1 [file2..]",
+            "Create new files with given names and extension.",
+        )
+
+    def do_delete(self, files):
+        args = self.parse_args("delete", files, 1)
+        if args:
+            if args[0] == "-force":
+                force = True
+                args = args[1:]
+            else:
+                force = False
+
+            if not ns_is_responding():
+                self.do_quit()
+
+            for arg in args:
+                path = self.parse_path(arg)
+                result = json.loads(CONN.root.delete(path, force_delete=force))
+
+                if result["status"] == 1:
+                    if path == self.parse_path(self.CURRENT_DIR):
+                        self.change_current_directory(self.ABSOLUTE_ROOT)
+
+                self.print_response(result)
+
+    def help_delete(self):
+        self.print_help(
+            "delete [-force] file1 ... fileN",
+            "Delete files with given pathnames.\nUse <red>-force</red> to delete a file or directory with files inside.",
+        )
