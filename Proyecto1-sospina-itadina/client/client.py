@@ -519,3 +519,205 @@ class MyPrompt(Cmd):
             "move source_path target_path",
             "Move file/contents from source_path to target_path.",
         )
+
+    def do_upload(self, args):
+        args = self.parse_args("upload", args, 2, 2)
+        if args:
+            local_path = args[0]  # its local computer path
+            remote_path = self.parse_path(args[1])
+
+            if not ns_is_responding():
+                self.do_quit()
+            res = json.loads(CONN.root.get(remote_path))
+
+            result = {"status": 1}
+            msg = []
+
+            if not os.path.exists(local_path):
+                result["status"] = 0
+                msg.append("No such resoure in local path!")
+
+            if res["status"] == 0:
+                result["status"] = 0
+                msg.append("No such target remote directory!")
+
+            if result["status"] == 0:
+                result["message"] = "\n".join(msg)
+                self.print_response(result)
+                return
+
+            # get configurations
+            replication_factor = int(res["nsconfig"].get("replication_factor"))
+            block_size = int(res["nsconfig"].get("block_size"))
+            estimated_servers_need = os.path.getsize(local_path) / replication_factor
+
+            if not ns_is_responding():
+                self.do_quit()
+            storage_servers = CONN.root.get_alive_servers(estimated_servers_need + 4)
+
+            ss_block_map = []
+            total_size = os.path.getsize(local_path)
+            blocks_len = math.ceil(total_size / block_size)
+            print(
+                HTML("File splitted into <green>{}</green> blocks.".format(blocks_len))
+            )
+            done_size = 0
+            with open(local_path, "rb") as lf:
+                buff = lf.read(block_size)
+                i = 0
+                while buff:
+                    i += 1
+                    print("Uploading block", i)
+                    block_name = str(uuid4())
+                    target_ss = (
+                        random.sample(storage_servers, replication_factor)
+                        if len(storage_servers) > replication_factor
+                        else storage_servers
+                    )
+
+                    for ss in tqdm(target_ss):
+                        put_in_ss(ss, remote_path, block_name, buff)
+                        done_size += block_size
+                        ss_block_map.append([ss, block_name])
+
+                    buff = lf.read(block_size)
+
+            # send this block map to nameserver for storing
+            if not ns_is_responding():
+                self.do_quit()
+            local_path = local_path[:-1] if local_path[-1] == "/" else local_path
+            try:
+                file_name = local_path.rsplit("/", 1)[1]
+            except IndexError:
+                file_name = local_path
+
+            file_name = os.path.join(remote_path, file_name)
+            result = json.loads(CONN.root.new_file(file_name, ss_block_map))
+            self.print_response(result)
+
+    def help_upload(self):
+        self.print_help(
+            "upload file_local_path target_dfs_directory",
+            "Upload file from local file system to DFS.",
+        )
+
+    def do_download(self, args):
+        args = self.parse_args("download", args, 2, 2)
+
+        if args:
+            remote = self.parse_path(args[0])
+            local = args[1]
+
+            if not ns_is_responding():
+                self.do_quit()
+            # print(remote)
+            res = json.loads(CONN.root.get(remote))
+
+            result = {"status": 1}
+            msg = []
+
+            if not os.path.exists(local):
+                result["status"] = 0
+                msg.append("No such target local directory!")
+
+            blocks = []
+            if res["status"] == 0:
+                result["status"] = 0
+                msg.append("No such resource in remote path!")
+            else:
+                blocks = res["data"]["blocks"]
+
+            if not blocks or len(blocks) == 0:
+                result["status"] = 0
+                msg.append("No file/empty file in given remote directory.")
+
+            if result["status"] == 0:
+                result["message"] = "\n".join(msg)
+                self.print_response(result)
+                return
+
+            out_fname = remote.rsplit("/", 1)[1]
+            response = {"status": 1, "message": ""}
+            target_out_file = os.path.join(local, out_fname)
+            target_remote_path = remote.rsplit("/", 1)[0]
+            print(
+                HTML("<green>{}</green> blocks need to be fetched.".format(len(blocks)))
+            )
+            with open(target_out_file, "wb") as lf:
+                i = 0
+                for block_id in tqdm(blocks):
+                    i += 1
+                    target_ss = CONN.root.get_ss_having_this_block(block_id)
+                    data = None
+                    problematic_ss = []
+                    for ss in target_ss:
+                        try:
+                            block_path = os.path.join(target_remote_path, block_id)
+                            data = get_from_ss(ss, block_path)
+                            lf.write(data)
+                            # print(HTML('Block <b>{}</b> fetched.'.format(i)))
+                            break
+                        except:
+                            data = None
+                            problematic_ss.append(ss)
+
+                    if len(problematic_ss) > 0 and data is None:
+                        print("Problematic storage servers were", problematic_ss)
+
+                    if not data:
+                        response["status"] = 0
+                        response["message"] = (
+                            "At least 1 block missing! Can't retrieve the file."
+                        )
+                        self.print_response(response)
+                        return
+
+            response["message"] = "File saved to {}".format(local)
+            self.print_response(response)
+
+    def help_download(self):
+        args = self.print_help(
+            "download file_dfs_path target_local_directory",
+            "Download files from DFS to local system.",
+        )
+
+    def do_refresh(self, args):
+        args = self.parse_args("refresh", args, 0, 0)
+        if args is not None:
+            if not ns_is_responding():
+                self.do_quit()
+            res = json.loads(CONN.root.refresh())
+            self.print_response(res)
+
+    def help_refresh(self):
+        self.print_help("refresh", "Refresh DFS.")
+
+    def default(self, inp):
+        if inp == "x" or inp == "q":
+            return self.do_quit(inp)
+        else:
+            print(
+                HTML(
+                    '"{}" is NOT a valid command! \n > Try <green>help</green> to see available commands.\n'.format(
+                        inp
+                    )
+                )
+            )
+
+    def emptyline(self):
+        pass
+
+def main(ns):
+    global CONN
+    global NS_IP, NS_PORT
+    NS_IP = ns[0]
+    NS_PORT = ns[1]
+
+    if connect_to_ns():
+        MyPrompt().cmdloop()
+
+
+if __name__ == "__main__":
+    aws = ["3.134.8.132", 18861]
+    local = ["localhost", 18860]
+    main(local)
