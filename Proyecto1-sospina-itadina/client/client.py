@@ -430,3 +430,92 @@ class MyPrompt(Cmd):
             "delete [-force] file1 ... fileN",
             "Delete files with given pathnames.\nUse <red>-force</red> to delete a file or directory with files inside.",
         )
+
+    def do_info(self, path):
+        args = self.parse_args("info", path, 0, 1)
+        arg = "." if len(args) == 0 else args[0]
+        arg = self.parse_path(arg)
+
+        if not ns_is_responding():
+            self.do_quit()
+
+        res = json.loads(CONN.root.get(arg))
+        if res["status"] == 1:
+            is_file = True if "blocks" in res["data"].keys() else False
+            if is_file:
+                blocks = res["data"]["blocks"]
+                size_bytes = (
+                    (len(blocks) - 1) * int(res["nsconfig"]["block_size"])
+                    if len(res["data"]["blocks"]) > 0
+                    else 0
+                )
+                target_ss = CONN.root.get_ss_having_this_block(blocks[-1])
+                last_byte_size = None
+                target_remote_path = self.parse_path(arg).rsplit("/", 1)[0]
+                for ss in target_ss:
+                    try:
+                        block_path = os.path.join(target_remote_path, blocks[-1])
+                        data = get_from_ss(ss, block_path)
+                        last_byte_size = sys.getsizeof(data)
+                        break
+                    except:
+                        pass
+
+                if last_byte_size is None:
+                    last_byte_size = int(res["nsconfig"]["block_size"])
+
+                res["message"] = "This is a file. \nLocation: {}\nSize: {}".format(
+                    arg, parse_size_from_bytes(size_bytes + last_byte_size)
+                )
+            else:
+                keys = res["data"].keys()
+                file_count = 0
+                dir_count = 0
+                for key in keys:
+                    if "blocks" in res["data"][key].keys():
+                        file_count += 1
+                    else:
+                        dir_count += 1
+                # files_inside = CONN.root.files_in_directory(arg.split("/")[-1], res["data"])
+                # res["message"] = "This is a directory.\n<green>Direct Subdirectories count</green>: {} \n<green>Direct files count</green>: {}\n<green>Total files inside</green>: {}".format(dir_count, file_count, None)
+        self.print_response(res)
+
+    def help_info(self):
+        self.print_help(
+            "info [file_or_dir_path]", "Output information of file/dir in given path."
+        )
+
+    def do_copy(self, args):
+        args = self.parse_args("copy", args, 2, 2)
+        if args:
+            src = self.parse_path(args[0])
+            dest = self.parse_path(args[1])
+
+            if not ns_is_responding():
+                self.do_quit()
+
+            result = json.loads(CONN.root.copy(src, dest))
+            self.print_response(result)
+
+    def help_copy(self):
+        self.print_help("copy file_path target_dir", "Copy a file to target directory.")
+
+    def do_move(self, args):
+        args = self.parse_args("move", args, 2, 2)
+        if args:
+            src = self.parse_path(args[0])
+            dest = self.parse_path(args[1])
+
+            if not ns_is_responding():
+                self.do_quit()
+
+            result = json.loads(CONN.root.move(src, dest))
+            if src == self.parse_path(self.CURRENT_DIR):
+                self.change_current_directory(dest)
+            self.print_response(result)
+
+    def help_move(self):
+        self.print_help(
+            "move source_path target_path",
+            "Move file/contents from source_path to target_path.",
+        )
