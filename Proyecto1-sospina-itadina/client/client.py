@@ -2,7 +2,8 @@ from __future__ import unicode_literals, print_function
 from prompt_toolkit import print_formatted_text as print, HTML
 from prompt_toolkit.styles import Style
 
-import os, sys
+import os 
+import sys
 
 if sys.version_info < (3, 5):
     print("> Please use Python version 3.5 or above!")
@@ -630,6 +631,15 @@ def main(ns):
 
 
 if __name__ == "__main__":
-    aws = ["3.134.8.132", 18861]
-    local = ["localhost", 18860]
-    main(local)
+    aws = ['3.209.109.203', 18860]
+    local = ['localhost', 18860]
+    print('Connecting to nameserver...')
+    print('1. AWS')
+    print('2. Local')
+    choice = input('Enter your choice: ')
+    if choice=='1':
+        print('Connecting to AWS...', aws[0], ':', aws[1])
+        main(aws)
+    else:
+        print('Connecting to Local...', local[0], ':', local[1])
+        main(local)
