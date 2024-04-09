@@ -2,8 +2,7 @@ from __future__ import unicode_literals, print_function
 from prompt_toolkit import print_formatted_text as print, HTML
 from prompt_toolkit.styles import Style
 
-import os
-import sys
+import os, sys
 
 if sys.version_info < (3, 5):
     print("> Please use Python version 3.5 or above!")
@@ -14,6 +13,7 @@ import time
 import random
 from uuid import uuid4
 import json
+
 
 style = Style.from_dict(
     {
@@ -42,16 +42,17 @@ except ModuleNotFoundError:
     )
     sys.exit(0)
 
+
 CONN = None
-NS_IP = None
-NS_PORT = None
+NN_IP = None
+NN_PORT = None
 
 
-def connect_to_ns(count_retry=1, max_retry=3):
+def connect_to_nn(count_retry=1, max_retry=3):
     global CONN
-    print(HTML("<orange>Connecting to nameserver...</orange>"))
+    print(HTML("<orange>Connecting to namenode...</orange>"))
     try:
-        CONN = rpyc.connect(NS_IP, NS_PORT)
+        CONN = rpyc.connect(NN_IP, NN_PORT)
     except ConnectionError:
         CONN = None
 
@@ -62,7 +63,7 @@ def connect_to_ns(count_retry=1, max_retry=3):
         time.sleep(1)
         if count_retry <= max_retry:
             print("Attempts so far = {}. Let's retry!".format(count_retry))
-            return connect_to_ns(count_retry + 1, max_retry)
+            return connect_to_nn(count_retry + 1, max_retry)
         else:
             print("Maximum allowed attempts made. Closing the application now!\n")
             return False
@@ -72,43 +73,45 @@ def connect_to_ns(count_retry=1, max_retry=3):
         return True
 
 
-def ns_is_responding():
+def nn_is_responding():
     global CONN
     try:
         temp = CONN.root.refresh()
         return True
     except EOFError:
         CONN = None
-        print(HTML("<red>Error</red>: Connection to nameserver lost!"))
+        print(HTML("<red>Error</red>: Connection to namenode lost!"))
         time.sleep(0.7)
         print(HTML("<green>Retrying</green> in 5 seconds..."))
         time.sleep(5)
 
-        return True if connect_to_ns() else False
+        return True if connect_to_nn() else False
 
 
-def put_in_ss(ss, remote_path, block_name, block_data):
-    ss = ss.split(":")
+# put in data node
+def put_in_dn(dn, remote_path, block_name, block_data):
+    dn = dn.split(":")
     try:
-        conn = rpyc.connect(ss[1], ss[2])
+        conn = rpyc.connect(dn[1], dn[2])
         target_path = os.path.join(remote_path, block_name)
         conn.root.put(target_path, block_data)
     except ConnectionRefusedError:
         print(
             "Connection refused by {} while trying to put block {}".format(
-                ss, block_name
+                dn, block_name
             )
         )
     return None
 
 
-def get_from_ss(ss, remote_path):
-    ss = ss.split(":")
+# get from data node
+def get_from_dn(dn, remote_path):
+    dn = dn.split(":")
     try:
-        conn = rpyc.connect(ss[1], ss[2])
+        conn = rpyc.connect(dn[1], dn[2])
         return conn.root.get(remote_path)
     except ConnectionRefusedError:
-        print("Connection refused by {} while trying to get {}".format(ss, remote_path))
+        print("Connection refused by {} while trying to get {}".format(dn, remote_path))
 
 
 def parse_size_from_bytes(num):
@@ -142,8 +145,8 @@ class MyPrompt(Cmd):
     global CONN
     ABSOLUTE_ROOT = "/ken"
     CURRENT_DIR = "/ken"
-    prompt = "[KEN-DFS] (.) >> "
-    intro = "Welcome to KEN Distributed File System.\n > Type '?' or 'help' to see available commands.\n > The root volume is /ken/ \n"
+    prompt = "[DFS] (.) >> "
+    intro = "Welcome to DFS Project.\n > Type '?' or 'help' to see available commands.\n > The root volume is /ken/ \n"
 
     def preloop(self):
         print(HTML("\n------------- <green>Session Started</green> -------------\n"))
@@ -211,7 +214,7 @@ class MyPrompt(Cmd):
     def change_current_directory(self, dir):
         self.CURRENT_DIR = dir
         dir = "." + dir[4:] if dir[:4] == self.ABSOLUTE_ROOT else dir
-        self.prompt = "[KEN-DFS] (" + dir + ") >> "
+        self.prompt = "[DFS] (" + dir + ") >> "
 
     def do_show(self, args):
         args = args.strip().split(" ", 1)
@@ -230,7 +233,7 @@ class MyPrompt(Cmd):
                 method_to_call(myargs)
             except AttributeError:
                 print(HTML("No such command <red>{}</red>".format(cmd)))
-        if ns_is_responding:
+        if nn_is_responding:
             result = json.loads(CONN.root.get("/ken"))["dfs"]
             self.print_dictionary(result)
 
@@ -243,7 +246,7 @@ class MyPrompt(Cmd):
     def do_init(self, args):
         args = self.parse_args("init", args, 0, 1)
 
-        if not ns_is_responding():
+        if not nn_is_responding():
             self.do_quit()
 
         result = {}
@@ -284,7 +287,7 @@ class MyPrompt(Cmd):
     def do_cd(self, dir):
         args = self.parse_args("cd", dir, 1, 1)
 
-        if not ns_is_responding():
+        if not nn_is_responding():
             self.do_quit()
 
         if args:
@@ -314,7 +317,7 @@ class MyPrompt(Cmd):
         except IndexError:
             arg = self.parse_path(args)
 
-        if not ns_is_responding():
+        if not nn_is_responding():
             self.do_quit()
         result = json.loads(CONN.root.get(arg))
 
@@ -345,7 +348,7 @@ class MyPrompt(Cmd):
 
     def do_mkdir(self, dir):
         args = self.parse_args("mkdir", dir, 1, 1)
-        if not ns_is_responding():
+        if not nn_is_responding():
             self.do_quit()
         if args:
             arg = self.parse_path(args[0])
@@ -368,7 +371,7 @@ class MyPrompt(Cmd):
 
     def do_mkfiles(self, files):
         args = self.parse_args("mkfiles", files, 1)
-        if not ns_is_responding():
+        if not nn_is_responding():
             self.do_quit()
         if args:
             for arg in tqdm(args):
@@ -412,7 +415,7 @@ class MyPrompt(Cmd):
             else:
                 force = False
 
-            if not ns_is_responding():
+            if not nn_is_responding():
                 self.do_quit()
 
             for arg in args:
@@ -431,102 +434,13 @@ class MyPrompt(Cmd):
             "Delete files with given pathnames.\nUse <red>-force</red> to delete a file or directory with files inside.",
         )
 
-    def do_info(self, path):
-        args = self.parse_args("info", path, 0, 1)
-        arg = "." if len(args) == 0 else args[0]
-        arg = self.parse_path(arg)
-
-        if not ns_is_responding():
-            self.do_quit()
-
-        res = json.loads(CONN.root.get(arg))
-        if res["status"] == 1:
-            is_file = True if "blocks" in res["data"].keys() else False
-            if is_file:
-                blocks = res["data"]["blocks"]
-                size_bytes = (
-                    (len(blocks) - 1) * int(res["nsconfig"]["block_size"])
-                    if len(res["data"]["blocks"]) > 0
-                    else 0
-                )
-                target_ss = CONN.root.get_ss_having_this_block(blocks[-1])
-                last_byte_size = None
-                target_remote_path = self.parse_path(arg).rsplit("/", 1)[0]
-                for ss in target_ss:
-                    try:
-                        block_path = os.path.join(target_remote_path, blocks[-1])
-                        data = get_from_ss(ss, block_path)
-                        last_byte_size = sys.getsizeof(data)
-                        break
-                    except:
-                        pass
-
-                if last_byte_size is None:
-                    last_byte_size = int(res["nsconfig"]["block_size"])
-
-                res["message"] = "This is a file. \nLocation: {}\nSize: {}".format(
-                    arg, parse_size_from_bytes(size_bytes + last_byte_size)
-                )
-            else:
-                keys = res["data"].keys()
-                file_count = 0
-                dir_count = 0
-                for key in keys:
-                    if "blocks" in res["data"][key].keys():
-                        file_count += 1
-                    else:
-                        dir_count += 1
-                # files_inside = CONN.root.files_in_directory(arg.split("/")[-1], res["data"])
-                # res["message"] = "This is a directory.\n<green>Direct Subdirectories count</green>: {} \n<green>Direct files count</green>: {}\n<green>Total files inside</green>: {}".format(dir_count, file_count, None)
-        self.print_response(res)
-
-    def help_info(self):
-        self.print_help(
-            "info [file_or_dir_path]", "Output information of file/dir in given path."
-        )
-
-    def do_copy(self, args):
-        args = self.parse_args("copy", args, 2, 2)
-        if args:
-            src = self.parse_path(args[0])
-            dest = self.parse_path(args[1])
-
-            if not ns_is_responding():
-                self.do_quit()
-
-            result = json.loads(CONN.root.copy(src, dest))
-            self.print_response(result)
-
-    def help_copy(self):
-        self.print_help("copy file_path target_dir", "Copy a file to target directory.")
-
-    def do_move(self, args):
-        args = self.parse_args("move", args, 2, 2)
-        if args:
-            src = self.parse_path(args[0])
-            dest = self.parse_path(args[1])
-
-            if not ns_is_responding():
-                self.do_quit()
-
-            result = json.loads(CONN.root.move(src, dest))
-            if src == self.parse_path(self.CURRENT_DIR):
-                self.change_current_directory(dest)
-            self.print_response(result)
-
-    def help_move(self):
-        self.print_help(
-            "move source_path target_path",
-            "Move file/contents from source_path to target_path.",
-        )
-
     def do_upload(self, args):
         args = self.parse_args("upload", args, 2, 2)
         if args:
             local_path = args[0]  # its local computer path
             remote_path = self.parse_path(args[1])
 
-            if not ns_is_responding():
+            if not nn_is_responding():
                 self.do_quit()
             res = json.loads(CONN.root.get(remote_path))
 
@@ -551,7 +465,7 @@ class MyPrompt(Cmd):
             block_size = int(res["nsconfig"].get("block_size"))
             estimated_servers_need = os.path.getsize(local_path) / replication_factor
 
-            if not ns_is_responding():
+            if not nn_is_responding():
                 self.do_quit()
             storage_servers = CONN.root.get_alive_servers(estimated_servers_need + 4)
 
@@ -569,21 +483,21 @@ class MyPrompt(Cmd):
                     i += 1
                     print("Uploading block", i)
                     block_name = str(uuid4())
-                    target_ss = (
+                    target_dn = (
                         random.sample(storage_servers, replication_factor)
                         if len(storage_servers) > replication_factor
                         else storage_servers
                     )
 
-                    for ss in tqdm(target_ss):
-                        put_in_ss(ss, remote_path, block_name, buff)
+                    for dn in tqdm(target_dn):
+                        put_in_dn(dn, remote_path, block_name, buff)
                         done_size += block_size
-                        ss_block_map.append([ss, block_name])
+                        ss_block_map.append([dn, block_name])
 
                     buff = lf.read(block_size)
 
             # send this block map to nameserver for storing
-            if not ns_is_responding():
+            if not nn_is_responding():
                 self.do_quit()
             local_path = local_path[:-1] if local_path[-1] == "/" else local_path
             try:
@@ -608,7 +522,7 @@ class MyPrompt(Cmd):
             remote = self.parse_path(args[0])
             local = args[1]
 
-            if not ns_is_responding():
+            if not nn_is_responding():
                 self.do_quit()
             # print(remote)
             res = json.loads(CONN.root.get(remote))
@@ -647,22 +561,22 @@ class MyPrompt(Cmd):
                 i = 0
                 for block_id in tqdm(blocks):
                     i += 1
-                    target_ss = CONN.root.get_ss_having_this_block(block_id)
+                    target_dn = CONN.root.get_dn_having_this_block(block_id)
                     data = None
-                    problematic_ss = []
-                    for ss in target_ss:
+                    problematic_dn = []
+                    for dn in target_dn:
                         try:
                             block_path = os.path.join(target_remote_path, block_id)
-                            data = get_from_ss(ss, block_path)
+                            data = get_from_dn(dn, block_path)
                             lf.write(data)
                             # print(HTML('Block <b>{}</b> fetched.'.format(i)))
                             break
                         except:
                             data = None
-                            problematic_ss.append(ss)
+                            problematic_dn.append(dn)
 
-                    if len(problematic_ss) > 0 and data is None:
-                        print("Problematic storage servers were", problematic_ss)
+                    if len(problematic_dn) > 0 and data is None:
+                        print("Problematic storage servers were", problematic_dn)
 
                     if not data:
                         response["status"] = 0
@@ -684,7 +598,7 @@ class MyPrompt(Cmd):
     def do_refresh(self, args):
         args = self.parse_args("refresh", args, 0, 0)
         if args is not None:
-            if not ns_is_responding():
+            if not nn_is_responding():
                 self.do_quit()
             res = json.loads(CONN.root.refresh())
             self.print_response(res)
@@ -704,16 +618,14 @@ class MyPrompt(Cmd):
                 )
             )
 
-    def emptyline(self):
-        pass
 
 def main(ns):
     global CONN
-    global NS_IP, NS_PORT
-    NS_IP = ns[0]
-    NS_PORT = ns[1]
+    global NN_IP, NN_PORT
+    NN_IP = ns[0]
+    NN_PORT = ns[1]
 
-    if connect_to_ns():
+    if connect_to_nn():
         MyPrompt().cmdloop()
 
 

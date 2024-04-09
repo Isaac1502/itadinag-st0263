@@ -1,6 +1,7 @@
-import sys
+import os, sys
 import rpyc
-import os
+from subprocess import run
+import socket
 import random
 import json
 from functools import reduce
@@ -8,17 +9,17 @@ from operator import getitem
 
 
 # Methods exposed to clients using rpyc
-class StorageServerService(rpyc.Service):
+class DataNodeService(rpyc.Service):
     ROOT = "/ken"
 
     def __init__(self):
-        print("StorageServerService initialized...")
+        print("Data node initialized...")
 
-    def log_new_connection(self, conn):
+    def on_connect(self, conn):
         sock = conn._channel.stream.sock
         print("Connection established with", sock.getpeername())
 
-    def log_connection_termination(self, conn):
+    def on_disconnect(self, conn):
         sock = conn._channel.stream.sock
         print("Connection closed with", sock.getpeername())
 
@@ -57,17 +58,17 @@ class StorageServerService(rpyc.Service):
             print("Connection to {} refused while sending block".format(dest))
 
     # block_received is automatically done by ns, only worry about block sent here
-    def inform_ns_block_sent(self, block_id, ss_id):  # inform_ns_block_sent
-        ns = "ns:3.134.8.132:18861"
-        ns = ns.split(":")
+    def inform_nn_block_sent(self, block_id, dn_id):  # inform_ns_block_sent
+        nn = "ns:3.134.8.132:18861"
+        nn = nn.split(":")
         try:
             # here we need to connect to Name Server, IP, Port of NS needed.
-            conn = rpyc.connect(ns[0], ns[2])
-            conn.root.mark_new_block(block_id, ss_id)
-            print("Block sent informed to NS.")
+            conn = rpyc.connect(nn[0], nn[2])
+            conn.root.mark_new_block(block_id, dn_id)
+            print("Block sent informed to NameNode.")
         except ConnectionRefusedError:
             print(
-                "Connection refused when trying to connect to NS to inform of blocks sent."
+                "Connection refused when trying to connect to NameNode to inform of blocks sent."
             )
 
     def exposed_forward_my_blocks(self, blocks, dests):  # redistribute_data_blocks
@@ -77,7 +78,7 @@ class StorageServerService(rpyc.Service):
                     target = random.choice(dests)
                     target_path = os.path.join(root, name)
                     self.exposed_send_my_block(target_path, target, target_path)
-                    self.inform_ns_block_sent(name, target)
+                    self.inform_nn_block_sent(name, target)
                     print("My block {} forwarded to {}".format(name, target))
 
     def maintain_subdirectories(self, root, to_add, to_remove):
@@ -115,24 +116,28 @@ class StorageServerService(rpyc.Service):
     def exposed_run_shell_cmd(self, formatted_cmd_str):  # run_shell_cmd
         from subprocess import run
 
-        run("sudo chmod -R -v 777 /ken/", shell=True, check=True)
+        if os.path.exists("/ken/"):
+            run("sudo chmod -R -v 777 /ken/", shell=True, check=True)
+        else:
+            print(f"The directory doesn't exist.")
         run(formatted_cmd_str, shell=True, check=True)
 
 
 def main(port=18861):
     from rpyc.utils.server import ThreadedServer
 
-    t = ThreadedServer(StorageServerService(), port=port)
+    t = ThreadedServer(DataNodeService(), port=port)
     print("Server details: ({}, {})".format(t.host, port))
     t.start()
 
-    if __name__ == "__main__":
-        args = sys.argv[1:]
-        if len(args) > 1:
-            print("Wrong usage: You can only specify [port] as argument.")
-            sys.exit(0)
-        elif len(args) == 0:
-            port = 18861
-        else:
-            port = int(args[0])
-        main(port)
+
+if __name__ == "__main__":
+    args = sys.argv[1:]
+    if len(args) > 1:
+        print("Wrong usage: You can only specify [port] as argument.")
+        sys.exit(0)
+    elif len(args) == 0:
+        port = 18861
+    else:
+        port = int(args[0])
+    main(port)
