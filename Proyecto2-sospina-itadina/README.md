@@ -1,4 +1,3 @@
-
 # Proyecto 2 - Cluster Kubernetes
 
 Para el segundo proyecto de la maateria 'Tópicos Especiales de Telemática' se propne un clúster de alta disponibilidad en Kubernetes, utilizando la distribución microk8s y configurando un entorno de Infraestructura como Servicio (IaaS) en Google Cloud Platform. La aplicación a desplegar es un sistema de gestión de contenidos Wordpress.
@@ -10,8 +9,6 @@ Para el segundo proyecto de la maateria 'Tópicos Especiales de Telemática' se 
 - Implementar un balanceador de cargas para distribuir el tráfico entre los nodos del clúster.
 - Desplegar una base de datos de alta disponibilidad en Kubernetes.
 - Configurar un servidor NFS en el clúster para el almacenamiento de archivos compartidos.
-
-
 
 ## Desripción Arquitectural
 
@@ -26,14 +23,16 @@ Para la implementación del sistema de gestión de contenidos en una infraestruc
 Se utilizó una microk8s como servicio base para crear el cluster de kubernetes con las máquinas virtuales, la distribución de las VM es la siguiente:
 
 ### microk8s-master
+
 Máquina virtual master o principal del clúster. Es la máquina que permite la conexión al cluster de otras máquinas (workers), además es de ser la que expone el punto de entrada a los pods de servicio (Ingress).
 
-### microk8s-worker-*
+### microk8s-worker-\*
+
 Para efectos prácticos se utilizaron 2 máquinas virtuales a modo de workers en el cluster, las cuales alojan pods de servicio tanto de wordpress como de mysql.
 
 ### microk8s-nfs
-Es la máquina virtual dedicada al servicio de almacenamiento de archivos, se utiliza nfs-kernel-server y expone un directorio para almacenar pvc el cual puede ser usado por otros nodos de la subnet.
 
+Es la máquina virtual dedicada al servicio de almacenamiento de archivos, se utiliza nfs-kernel-server y expone un directorio para almacenar pvc el cual puede ser usado por otros nodos de la subnet.
 
 ## Manifiestos utilizados
 
@@ -56,6 +55,7 @@ mountOptions:
   - hard
   - nfsvers=4.1
 ```
+
 Este archivo YAML define una clase de almacenamiento (StorageClass) llamada nfs-csi que utiliza el controlador CSI de NFS para provisionar volúmenes en Kubernetes. En dicho archivo se define además el servidor NFS y el directorio raíz que está expuesto para el servicio de almacenamiento.
 
 #### kustomization.yaml
@@ -82,15 +82,15 @@ Este archivo YAML define el conjunto de recursos que se utilizarán para despleg
 
 **resources:** Esta sección lista los recursos que se utilizarán para el despliegue del clúster. Cada recurso está definido en un archivo YAML separado y se incluye mediante su ruta relativa. Los recursos incluidos son:
 
-- *mysql-pvc.yaml:* Define un volumen persistente para la base de datos MySQL.
-- *mysql-deployment.yaml:* Define un deployment para la base de datos MySQL.
-- *mysql-service.yaml:* Define un servicio para la base de datos MySQL.
-- *wordpress-pvc.yaml:* Define un volumen persistente para la aplicación WordPress.
-- *wordpress-deployment.yaml:* Define un deployment para la aplicación WordPress.
-- *wordpress-service.yaml:* Define un servicio para la aplicación WordPress.
-- *wordpress-ingress.yaml:* Define un ingress para la aplicación WordPress.
+- _mysql-pvc.yaml:_ Define un volumen persistente para la base de datos MySQL.
+- _mysql-deployment.yaml:_ Define un deployment para la base de datos MySQL.
+- _mysql-service.yaml:_ Define un servicio para la base de datos MySQL.
+- _wordpress-pvc.yaml:_ Define un volumen persistente para la aplicación WordPress.
+- _wordpress-deployment.yaml:_ Define un deployment para la aplicación WordPress.
+- _wordpress-service.yaml:_ Define un servicio para la aplicación WordPress.
+- _wordpress-ingress.yaml:_ Define un ingress para la aplicación WordPress.
 
-### MySQL 
+### MySQL
 
 #### mysql-pvc.yaml
 
@@ -182,7 +182,6 @@ spec:
     app: wordpress
     tier: mysql
   clusterIP: None
-
 ```
 
 Este archivo YAML describe un servicio en Kubernetes para la base de datos MySQL de WordPress. Este servicio permite la exposición de la base de datos MySQL dentro del clúster de Kubernetes para que otros servicios puedan comunicarse con ella. Está etiquetado como parte de la aplicación "wordpress" y selecciona los pods con las etiquetas "app: wordpress" y "tier: mysql" para exponerlos. El puerto 3306, que es el puerto por defecto de MySQL, está expuesto por este servicio. Sin embargo, no se le asigna una dirección IP interna en el clúster, lo que significa que solo será accesible desde otros servicios dentro del mismo.
@@ -255,9 +254,7 @@ spec:
         - name: wordpress-persistent-storage
           persistentVolumeClaim:
             claimName: wp-pv-claim
-
 ```
-
 
 Este archivo YAML describe el deployment en Kubernetes para WordPress. Este deployment despliega los pods que ejecutan la aplicación WordPress. Está etiquetado como parte de la aplicación "wordpress" y selecciona los pods con las etiquetas "app: wordpress" y "tier: frontend". Utiliza una estrategia de tipo Recreate para manejar los cambios en los pods.
 
@@ -280,7 +277,6 @@ spec:
   selector:
     app: wordpress
     tier: frontend
-
 ```
 
 Este archivo YAML describe el servicio en Kubernetes para la aplicación WordPress. El servicio se llama "wordpress" y está etiquetado como parte de la aplicación "wordpress". Establece un puerto de escucha en el puerto 80.
@@ -305,13 +301,11 @@ spec:
                 name: wordpress
                 port:
                   number: 80
-
 ```
 
 Este archivo YAML describe el recurso de Ingress en Kubernetes para enrutar el tráfico HTTP hacia el servicio de WordPress. El Ingress se denomina "wordpress-ingress".
 
 Las reglas del Ingress especifican que cualquier solicitud HTTP enviada al prefijo "/" será dirigida al servicio llamado "wordpress" en el puerto 80. Esto significa que cuando se accede al dominio asociado al Ingress, se redirigirá al servicio de WordPress para manejar la solicitud.
-
 
 ## Evidencias
 
@@ -323,12 +317,11 @@ Aplicación corriendo cuando se ubica la IP publica del master, la cual mapea el
 
 Todos los servicios, despliegues y contenedores activos para dar soporte al administrador de contenidos.
 
-
 ![App Screenshot](https://i.ibb.co/mCNPxRL/Image-15-05-24-at-2-03-PM.jpg)
 
 Como se puede ver en la imagen de la session en la máquina virtual que soporta el servicio de NFS, hay varios pvc creados, uno de ellos correspondiente al servicio de wordpress y el otro para MySQL. Ingresando al pvc de wordpress es posible ver que los assests almacenados.
-## Authors
+
+## Autores
 
 - [Santiago Ospina Idrobo](https://github.com/Santiagospinai7)
 - [Isaac Tadina Giraldo](https://github.com/Isaac1502)
-
