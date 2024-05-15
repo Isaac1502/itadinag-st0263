@@ -4,10 +4,10 @@ secretGenerator:
       - password=password
 
 resources:
-  - mysql-service.yaml
   - mysql-pvc.yaml
   - mysql-deployment.yaml
-  - wordpress-service.yaml
+  - mysql-service.yaml
   - wordpress-pvc.yaml
   - wordpress-deployment.yaml
+  - wordpress-service.yaml
   - wordpress-ingress.yaml
